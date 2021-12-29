@@ -43,6 +43,16 @@ def findDepartement():
 def listeCampagne():
         liste = camp.getListCampage()
         return jsonify(liste)
+
+@app.route('/getCampagne')
+def getCampagne():
+        liste = camp.getCampagne(idCampagne="a3a65e4d-c748-4b94-a87f-ede7da875505")
+        return jsonify(liste)
+
+@app.route('/duplicateCampagne')
+def duplicateCampagne():
+        liste = camp.duplicateCampagne(idOldCapagne="a3a65e4d-c748-4b94-a87f-ede7da875505")
+        return jsonify(liste)
         
 if __name__ == "__main__":
         app.run()
