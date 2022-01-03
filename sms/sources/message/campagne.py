@@ -2,12 +2,14 @@
 import requests
 import json
 import re
-from sms.sources.message.authentification import authentification
+
+from requests.api import request
+from sms.authentification import authentification
 from datetime import datetime
+from uuid import uuid4
 class campagne(authentification):
     def __init__(self, accountID, token):
         super().__init__(accountID, token)
-        
         
     def findUrlInBodySMS(self, data):
         result = []
@@ -18,19 +20,23 @@ class campagne(authentification):
         return result
                 
     def getListCampage(self, skip=0, take=20, isArchived=False):
-        url = "https://api.cm.com/messages/v1/accounts/"+self.accountID+"/messages?includePreview=true&isArchived="+str(isArchived).lower()+"&skip="+str(skip)+"&take="+str(take)
+        url = self.pathInitApi_V1+self.accountID+"/messages?includePreview=true&isArchived="+str(isArchived).lower()+"&skip="+str(skip)+"&take="+str(take)
         try:
             req = requests.get(url,headers=self.headers)
-            result = self.findUrlInBodySMS(json.loads(req.text)) if req.status_code == 200 else {"status": "error "+ str(req.status_code)}
+            result = self.findUrlInBodySMS(json.loads(req.text)) if req.status_code == 200 else {"etat": "error ", "etat_description": str(req.status_code)}
+            if "etat" not in result:
+                result = {"etat":"success", "value": result}
         except Exception as e:
             result = {"status": "error "+ str(e)}
         return result
     
     def getCampagne (self, idCampagne):
-        url = "https://api.cm.com/messages/v1/accounts/"+self.accountID+"/messages/"+idCampagne
+        url = self.pathInitApi_V1+self.accountID+"/messages/"+idCampagne
         try:
             req = requests.get(url,headers=self.headers)
-            result = json.loads(req.text) if req.status_code == 200 else {"status": "error "+ str(req.status_code)}
+            result = self.checkRequest(req)
+            if "etat" not in result:
+                result = {"etat":"success", "value": result}
         except Exception as e:
             result = {"status": "error "+ str(e)}
             
@@ -38,9 +44,10 @@ class campagne(authentification):
     
     def duplicateCampagne (self, idOldCapagne):
         dataOld = self.getCampagne(idOldCapagne)
+        print(dataOld)
         current = str(datetime.now())
         dataDuplicate = {
-            "analytics": dataOld['analytics'],
+            "analytics": dataOld['analytics'] if 'analytics' in dataOld else "" ,
             "body": dataOld['body'],
             "channels": dataOld['channels'],
             "createdAtUtc": current,
@@ -57,10 +64,75 @@ class campagne(authentification):
             "status": "draft",
             "updatedAtUtc": current,
         }
-        url = "https://api.cm.com/messages/v1/accounts/"+self.accountID+"/messages"
+        url = self.pathInitApi_V1+self.accountID+"/messages"
         try:
             req = requests.post(url, headers=self.headers, json=dataDuplicate)
-            result = json.loads(req.text) if req.status_code == 200 or req.status_code == 201  else {"status": "error "+ str(req.status_code)}
+            result = self.checkRequest(req)
+            if "etat" not in result:
+                result["etat"] = "success"
         except Exception as e:
             result = {"status": "error "+ str(e)}
         return result
+    
+    def createDraft(self, senderName, idGroup, bodySms, nameCampagne,ignoreUnsubscribes=False,channels="SMS"):
+        url =  self.pathInitApi_V1+self.accountID+"/messages"
+        smsContents = {
+            "senders": [senderName],
+            "recipients": [
+                {
+                "group": idGroup
+                }
+            ],
+            "body": bodySms,
+            "channels": [channels],
+            "ignoreUnsubscribes": ignoreUnsubscribes,
+            "name": nameCampagne,
+            "status": "draft"
+            }
+        try:
+            req = requests.post(url,headers=self.headers, json=smsContents)
+            result = self.checkRequest(req)
+            if "etat" not in result:
+                result["token"] = str(uuid4())
+                result["etat"] = "success"
+        except Exception as e:
+            result = {"etat": "error ", "etat_description": str(e)}
+        return result
+    
+    def planifierCampagne(self, idCampagne, scheduledAtUtc):
+        dataCampagne = self.getCampagne(idCampagne)
+        print(dataCampagne["status"], '------------------------')
+        if dataCampagne["status"] != "scheduled":
+            urlPreview = self.pathInitApi_V1+self.accountID+"/messages/preview"
+            preview_data = {}
+            try:
+                print('ato 1')
+                preview_req = requests.post(urlPreview, headers=self.headers, json=dataCampagne)
+                preview_data = self.checkRequest(preview_req)
+            except Exception as e:
+                print('ato 1 error')
+                result = {"etat": "error ", "etat_description": str(e)}
+                
+            if bool(preview_data) == True:
+                print('ato 2 debut')
+                dataCampagne["preview"] = preview_data
+                dataCampagne["scheduledAtUtc"] = scheduledAtUtc
+                dataCampagne["status"] = "scheduled"
+                url_planning  = self.pathInitApi_V1+self.accountID+"/messages/"+dataCampagne["id"]+"?versioned=true"
+                try:
+                    print('ato 2')
+                    print(dataCampagne,'-----------')
+                    print(url_planning,'-----------')
+                    planning_req = requests.put(url_planning, headers= self.headers, json= dataCampagne)
+                    print(planning_req)
+                    result = self.checkRequest(planning_req)
+                    if "etat" not in result:
+                        result["etat"] = "success"
+                except Exception as e:
+                    print('ato 2 error')
+                    result = {"etat": "error ", "etat_description": str(e)}
+        else:
+            result = {"etat": "error ", "etat_description":"cette campagne à déja été planifier"}
+                
+        return result
+        

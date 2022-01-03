@@ -1,10 +1,10 @@
 import pandas as pd
+import urllib.request
 from pandas.core.algorithms import mode
 
-class files:
-    def __init__(self):
-        pass
-    
+from sms.authentification import authentification
+
+class files(authentification):
     def formatFile(self, pathFile, type):
         fileContentFrame = pd.read_csv(pathFile, sep=',', on_bad_lines='skip')
         if type == 'delivered':
@@ -26,5 +26,17 @@ class files:
             print(e)
             
     def filterFile(self, contentFileFrame):
-        print(contentFileFrame)     
+        print(contentFileFrame)    
+        
+    def downloadFiles(self, idCampagne, fileType):
+        url = "https://api.cm.com/messages/v1/accounts/"+self.accountID+"/messages/"+idCampagne+"/export?status="+fileType
+        pathSaveFile = "C:\\PROJECT\\DOC\\CM\\Download\\"+idCampagne+"_"+fileType+".csv"
+        try:
+            confOpen = urllib.request.build_opener()
+            confOpen.addheaders=[('X-CM-PRODUCTTOKEN',self.token)]
+            urllib.request.install_opener(confOpen)
+            req=urllib.request.urlretrieve(url,pathSaveFile)
+            print(req)
+        except Exception as e:
+            print(e)
         
