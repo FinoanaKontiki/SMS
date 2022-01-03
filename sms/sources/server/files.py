@@ -29,7 +29,7 @@ class files(authentification):
         print(contentFileFrame)    
         
     def downloadFiles(self, idCampagne, fileType):
-        url = "https://api.cm.com/messages/v1/accounts/"+self.accountID+"/messages/"+idCampagne+"/export?status="+fileType
+        url = self.pathInitApi_V1+self.accountID+"/messages/"+idCampagne+"/export?status="+fileType
         pathSaveFile = "C:\\PROJECT\\DOC\\CM\\Download\\"+idCampagne+"_"+fileType+".csv"
         try:
             confOpen = urllib.request.build_opener()
