@@ -20,7 +20,7 @@ class campagne(authentification):
         return result
                 
     def getListCampage(self, skip=0, take=20, isArchived=False):
-        url = self.pathInitApi_V1+self.accountID+"/messages?includePreview=true&isArchived="+str(isArchived).lower()+"&skip="+str(skip)+"&take="+str(take)
+        url = self.pathInitApi_V1_message+self.accountID+"/messages?includePreview=true&isArchived="+str(isArchived).lower()+"&skip="+str(skip)+"&take="+str(take)
         try:
             req = requests.get(url,headers=self.headers)
             result = self.findUrlInBodySMS(json.loads(req.text)) if req.status_code == 200 else {"etat": "error ", "etat_description": str(req.status_code)}
@@ -31,7 +31,7 @@ class campagne(authentification):
         return result
     
     def getCampagne (self, idCampagne):
-        url = self.pathInitApi_V1+self.accountID+"/messages/"+idCampagne
+        url = self.pathInitApi_V1_message+self.accountID+"/messages/"+idCampagne
         try:
             req = requests.get(url,headers=self.headers)
             result = self.checkRequest(req)
@@ -43,7 +43,8 @@ class campagne(authentification):
         return result
     
     def duplicateCampagne (self, idOldCapagne):
-        dataOld = self.getCampagne(idOldCapagne)
+        dataOldAll = self.getCampagne(idOldCapagne)
+        dataOld = dataOldAll['value']
         print(dataOld)
         current = str(datetime.now())
         dataDuplicate = {
@@ -64,18 +65,18 @@ class campagne(authentification):
             "status": "draft",
             "updatedAtUtc": current,
         }
-        url = self.pathInitApi_V1+self.accountID+"/messages"
+        url = self.pathInitApi_V1_message+self.accountID+"/messages"
         try:
             req = requests.post(url, headers=self.headers, json=dataDuplicate)
             result = self.checkRequest(req)
             if "etat" not in result:
                 result["etat"] = "success"
         except Exception as e:
-            result = {"status": "error "+ str(e)}
+            result = {"etat": "error ", "etat_description": str(e)}
         return result
     
     def createDraft(self, senderName, idGroup, bodySms, nameCampagne,ignoreUnsubscribes=False,channels="SMS"):
-        url =  self.pathInitApi_V1+self.accountID+"/messages"
+        url =  self.pathInitApi_V1_message+self.accountID+"/messages"
         smsContents = {
             "senders": [senderName],
             "recipients": [
@@ -101,9 +102,8 @@ class campagne(authentification):
     
     def planifierCampagne(self, idCampagne, scheduledAtUtc):
         dataCampagne = self.getCampagne(idCampagne)
-        print(dataCampagne["status"], '------------------------')
-        if dataCampagne["status"] != "scheduled":
-            urlPreview = self.pathInitApi_V1+self.accountID+"/messages/preview"
+        if dataCampagne["value"]["status"] != "scheduled":
+            urlPreview = self.pathInitApi_V1_message+self.accountID+"/messages/preview"
             preview_data = {}
             try:
                 print('ato 1')
@@ -115,15 +115,16 @@ class campagne(authentification):
                 
             if bool(preview_data) == True:
                 print('ato 2 debut')
-                dataCampagne["preview"] = preview_data
-                dataCampagne["scheduledAtUtc"] = scheduledAtUtc
-                dataCampagne["status"] = "scheduled"
-                url_planning  = self.pathInitApi_V1+self.accountID+"/messages/"+dataCampagne["id"]+"?versioned=true"
+                dataCampagne["value"]["preview"] = preview_data
+                dataCampagne["value"]["scheduledAtUtc"] = scheduledAtUtc
+                dataCampagne["value"]["status"] = "scheduled"
+                url_planning  = self.pathInitApi_V1_message+self.accountID+"/messages/"+dataCampagne["value"]["id"]+"?versioned=true"
+                print(dataCampagne)
                 try:
                     print('ato 2')
                     print(dataCampagne,'-----------')
                     print(url_planning,'-----------')
-                    planning_req = requests.put(url_planning, headers= self.headers, json= dataCampagne)
+                    planning_req = requests.put(url_planning, headers= self.headers, json= dataCampagne['value'])
                     print(planning_req)
                     result = self.checkRequest(planning_req)
                     if "etat" not in result:
@@ -132,7 +133,79 @@ class campagne(authentification):
                     print('ato 2 error')
                     result = {"etat": "error ", "etat_description": str(e)}
         else:
-            result = {"etat": "error ", "etat_description":"cette campagne à déja été planifier"}
+            result = {"etat": "error ", "etat_description":"this campaign has already been planned"}
                 
         return result
+    
+    
+    def updateCampagne(self, idCampagne, dataNew):
+        url = self.pathInitApi_V1_message+self.accountID+"/messages/"+idCampagne
+        print(url)
+        current = str(datetime.now())
+        try:
+            dataToAdd = {
+                "body": dataNew['body'] if "body" in dataNew else "",
+                "channels": dataNew['channels'] if "body" in dataNew else "",
+                "createdAtUtc": current,
+                "createdBy": self.accountID,
+                "id": idCampagne,
+                "ignoreUnsubscribes": dataNew['ignoreUnsubscribes'] if "body" in dataNew else "",
+                "isArchived": dataNew["isArchived"] if "body" in dataNew else "",
+                "isStatsComplete": dataNew["isStatsComplete"] if "body" in dataNew else "",
+                "modifiedAtUtc": current,
+                "name": dataNew["name"],
+                "recipients": dataNew["recipients"],
+                "scheduledAtUtc": dataNew["scheduledAtUtc"] if "scheduledAtUtc" in dataNew else None,
+                "senders": dataNew["senders"],
+                "status": dataNew["status"],
+                "updatedAtUtc": current,
+            }
+            print(dataToAdd)
+            req = requests.put(url=url,headers=self.headers,json=dataToAdd)
+            result = self.checkRequest(req)
+            if "etat" not in result:
+                result["etat"] = "success"
+        except Exception as e:
+            result = {"etat": "error ", "etat_description": str(e)}
+        return result
+    
+    def getCountCampagne(self):
+        url = self.pathInitApi_V1_message+self.accountID+"/messages/count"
+        try:
+            req = requests.get(url,headers=self.headers)
+            result = self.checkRequest(req)
+            if "etat" not in result:
+                result = {"etat":"success", "value": result}
+        except Exception as e:
+            result = {"status": "error "+ str(e)}
+            
+        return result
+    
+    def sendMessageTest(self, idCamp, phoneTosend):
+        currentCamp = self.getCampagne(idCamp)
+        url =  self.pathInitApi_V1_message+self.accountID+"/messages/test"
+        print(url)
+        if currentCamp['etat'] == "success":
+            testRecipe = [
+                {
+                    "msisdn": phoneTosend,
+                    "data": {
+                    "1": "John",
+                    "2": "van",
+                    "3": "Doe",
+                    "4": "+31627100000",
+                    "5": "john.doe@example.com"
+                    }
+                }       
+            ]
+            data = {"message": currentCamp['value'], "testRecipients":testRecipe}
+            try:
+                req = requests.post(url,headers=self.headers, json=data)
+                result = self.checkRequest(req)
+                if "etat" not in result:
+                    result = {"etat":"success", "value": result}
+            except Exception as e:
+                result = {"status": "error "+ str(e)}
+            
+        return result    
         

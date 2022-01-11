@@ -5,7 +5,7 @@ from sms.authentification import authentification
 class contacts(authentification):
     
     def addSenders(self, senderName, isFavorite=True):
-        url = self.pathInitApi_V1+self.accountID+"/senders"
+        url = self.pathInitApi_V1_message+self.accountID+"/senders"
         data = {
             "isFavorite" : isFavorite,
             "name" : senderName,
@@ -21,7 +21,7 @@ class contacts(authentification):
         return result
     
     def addGroup(self, nameGroup):
-        url = self.pathInitApi_V2+self.accountID+"/groups"
+        url = self.pathInitApi_V2_addressbook+self.accountID+"/groups"
         data = {"name": nameGroup}
         try:
             req = requests.post(url,headers=self.headers, json=data)
@@ -31,7 +31,7 @@ class contacts(authentification):
         return result
     
     def addContactInGroup(self,dataContacts):
-        url = self.pathInitApi_V2+self.accountID+"/groups/"+dataContacts["groupId"]+"/contacts"
+        url = self.pathInitApi_V2_addressbook+self.accountID+"/groups/"+dataContacts["groupId"]+"/contacts"
         data = {
             "firstName": dataContacts["firstName"],
             "insertion": dataContacts["insertion"],
@@ -53,5 +53,14 @@ class contacts(authentification):
             result = {"status": "error "+ str(e)}
         return result
     
-    def listGroup(self):
-        pass
+    def listGroup(self, includeHidden=False,skip=0,take=20):
+        url = self.pathInitApi_V2_addressbook+self.accountID+"/groups?includeHidden="+str(includeHidden).lower()+"&skip="+str(skip)+"&take="+str(take)+"&orderBy=date desc"
+        print(url)
+        try:
+            req = requests.get(url,headers=self.headers)
+            result = json.loads(req.text) if req.status_code == 200 else {"etat": "error ", "etat_description": str(req.status_code)}
+            if "etat" not in result:
+                result = {"etat":"success", "value": result}
+        except Exception as e:
+            result = {"status": "error "+ str(e)}
+        return result
