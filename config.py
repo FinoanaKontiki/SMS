@@ -1,3 +1,8 @@
-SECRET_KEY = '#d#JCqTTW\nilK\\7m\x0bp#\tj~#H'
+###SFTP
+HOST = "sftp.kontikimedia.com"
+USER = "smsdatadwh"
+PASS = 'wQfBfHKH7Gx"H>bR'
 
-FB_APP_ID = 1200420960103822
+##CM ACCESS
+TOKEN = "36864ae2-4ff5-422b-af69-f5cafaaa413a"
+ACCOUNTID= "34f7db5c-48ac-42c2-8f5e-da39e4e28bbe"

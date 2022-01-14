@@ -39,7 +39,7 @@ def findDepartement():
 
 @app.route('/listeCampagne')
 def listeCampagne():
-        liste = camp.getListCampage(take=50)
+        liste = camp.getListCampage(take=100)
         # print(type(eval(result)))
         allId = [data['id'] for data in liste['value']]
         # return jsonify(result)
@@ -164,10 +164,18 @@ def filter():
 @app.route('/lunch_DWH_maj', methods=['POST'])
 def lunch():
         listeCampagne = request.json["list"]
-        file = files("34f7db5c-48ac-42c2-8f5e-da39e4e28bbe","36864ae2-4ff5-422b-af69-f5cafaaa413a")
-        # file.launchDWHUpdate(listeCampagne,"undelivered")
-        file.executThread(listeCampagne)
-        return jsonify({"maj":"ok"})
+        file = files(accountID=app.config['ACCOUNTID'],token=app.config['TOKEN'])
+        filterFile = file.executThread(listeCampagne)
+        if filterFile['etat'] == "success":
+                serv = ftp(host=app.config['HOST'],user=app.config['USER'], pwd=app.config['PASS'])
+                server_tatus = serv.connectToServer()
+                if server_tatus['status'] == "connected": 
+                        # serv.testEx()
+                        return jsonify({'etat': 'success', 'description': "process finished"})
+                else:
+                        return jsonify(server_tatus)
+        else:
+                return jsonify(filterFile)
 
      
 ##CAPTURE HTML TO IMG
@@ -182,11 +190,10 @@ def capture():
 ###########################server#########################################
 @app.route('/connectDWH')
 def connectDWH():
-        serv = ftp(host="sftp.kontikimedia.com",pwd='wQfBfHKH7Gx"H>bR',user="smsdatadwh")
+        serv = ftp(host=app.config['HOST'],user=app.config['USER'], pwd=app.config['PASS'])
         server_tatus = serv.connectToServer()
         if server_tatus['status'] == "connected": 
-                serv.createBackLogServerFile(fileTypeInSftp="Clicked",localFolderName="converted")
-                # serv.uploadToSFTP(sftpFolderName="converted", fileTypeInSftp="Clicked")
+                serv.testEx()
         return jsonify(server_tatus)
 
 if __name__ == "__main__":
