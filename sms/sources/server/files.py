@@ -22,7 +22,6 @@ class files(authentification):
     ##Fonctionlity Util 
     def writeToLog(self, logName, data):
         pathLog =  self.docFiles+"LOG//"+logName+"_"+data['etat']+".txt"
-        print(pathLog)
         with open(pathLog,"a") as f:
             f.write(str(data)+",\n")
             
@@ -38,7 +37,24 @@ class files(authentification):
             result = dateShoot+" "+hour
         else:
             result = ''
-        return result        
+        return result
+
+    def splitCampagneIDLIst(self, listCampagne, nbrPart):
+        lenContet = int(len(listCampagne)/nbrPart)
+        comptID=0
+        allData = []
+        data = []
+        for camp in listCampagne:
+            data.append(camp)
+            if comptID == lenContet:
+                allData.append(data)
+                comptID=0
+                data = []
+            comptID += 1
+        if len(data) >0:
+                allData.append(data)
+        return allData
+
     ############################################            
     def formatFile(self, pathFile, type):
         fileContentFrame = pd.read_csv(pathFile, sep=',', on_bad_lines='skip')
@@ -84,6 +100,7 @@ class files(authentification):
                     checkFile = Path(pathSaveFile)
                     if checkFile.is_file():
                         idStats = currentCamp['value']['name'].split('-')[2]
+                        print(f"{colors.OKCYAN} {idCampagne} ---  downloaded ---- {fileType}{colors.ENDC}")
                         result = {"etat": "success", "pathFile":pathSaveFile, "idStats": idStats, "fileType": fileType}
                     else:
                         result = {"etat": "error ", "etat_description": "file not created"}
@@ -93,6 +110,7 @@ class files(authentification):
                     result = {"etat": "error ", "etat_description": str(e)}
                     print(f"{colors.FAIL} {idCampagne} {str(e)}--- in downloadFiles{colors.ENDC}")
             else:
+                print(f"{colors.FAIL} {idCampagne} --- Status {currentCamp['value']['status']}{colors.ENDC}")
                 result = {"etat": "error ", "etat_description": "status "+ currentCamp['value']['status']}
         else:
             result = {"etat": "error ", "etat_description": "campagne not found"}
@@ -134,6 +152,7 @@ class files(authentification):
             return resultFrame
         except Exception as e:
             print(f"{colors.FAIL} ERROR: {str(e)}  PATH: {dataInfoCreatedFile['pathFile']} {colors.ENDC}")
+            self.writeToLog("filterFile_function",{"etat": "error ", "etat_description": str(e)})
             return {'etat':'ERROR'}
     
     def launchDWHUpdate(self, campagneList,fileType):
@@ -146,14 +165,16 @@ class files(authentification):
                     appendResult['idCampagne'] = idCamp 
                     self.writeToLog(fileType,appendResult)
                     if appendResult['etat'] == 'success':
+                        print(f"{colors.OKCYAN} File download ID: {idCamp} -------------- {fileType}{colors.ENDC}")
                         os.remove(infoCurrentCamp['pathFile'])
                     else:
-                        print(f"{colors.FAIL} {idCamp} error--------Fies not removed---{colors.ENDC}")
+                        print(f"{colors.FAIL} {idCamp} error--------Fies not removed--- {fileType}{colors.ENDC}")
                         print(appendResult)
     
     def executThread(self,listeCampagne):
         result = {"etat": "success"}
         try:
+            print(listeCampagne)
             undelivered  =threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"undelivered"))
             converted=threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"converted"))
             optedOut=threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"optedOut"))

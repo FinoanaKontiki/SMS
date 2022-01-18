@@ -69,10 +69,10 @@ class ftp():
             print(f"{colors.FAIL} ERROR uploading {fileTypeInSftp} file {str(e)}{colors.ENDC}")
 
     def proccessUpload(self, localFolderName,fileTypeInSftp):
-        # print(f"{colors.WARNING}{fileTypeInSftp} Start process----{colors.ENDC}")
-        # backCreate = self.createBackLogServerFile(localFolderName,fileTypeInSftp)
-        # if backCreate:
-        self.uploadToSFTP(localFolderName,fileTypeInSftp)
+        print(f"{colors.WARNING}{fileTypeInSftp} Start process----{colors.ENDC}")
+        backCreate = self.createBackLogServerFile(localFolderName,fileTypeInSftp)
+        if backCreate:
+            self.uploadToSFTP(localFolderName,fileTypeInSftp)
         
 
     def lunchUploadTread(self):
@@ -98,7 +98,7 @@ class ftp():
             except Exception as e:
                 print(f"{colors.FAIL}-----ERROR on thread execution {str(e)}{colors.ENDC}")
                 pass
-        self._server.close()
+        # self._server.close()
 
               
 

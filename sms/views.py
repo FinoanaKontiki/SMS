@@ -1,3 +1,4 @@
+from select import select
 from flask import Flask,jsonify,request
 from .sources.server.ftp import ftp
 from .sources.server.files import files
@@ -6,7 +7,7 @@ from .sources.departement import departement
 from .sources.message.campagne import campagne
 from .sources.message.contacts import contacts
 from .sources.capture.image import image
-
+from sms.color import colors
 app = Flask(__name__)
 
 # Config options - Make sure you created a 'config.py' file.
@@ -161,22 +162,30 @@ def filter():
 
 
 #######################
-@app.route('/lunch_DWH_maj', methods=['POST'])
+@app.route('/lunch_DWH_maj', methods=['GET'])
 def lunch():
-        listeCampagne = request.json["list"]
         file = files(accountID=app.config['ACCOUNTID'],token=app.config['TOKEN'])
-        filterFile = file.executThread(listeCampagne)
-        if filterFile['etat'] == "success":
-                serv = ftp(host=app.config['HOST'],user=app.config['USER'], pwd=app.config['PASS'])
+        serv = ftp(host=app.config['HOST'],user=app.config['USER'], pwd=app.config['PASS'])
+        # listeCampagne = request.json["list"]
+        listSent = camp.allCampgneByDATE()
+        listSplit = file.splitCampagneIDLIst(listSent,5)
+        try:
+                for listeCampagne in listSplit:
+                        file.executThread(listeCampagne)
+                ##MAJ DWH FILES
                 server_tatus = serv.connectToServer()
                 if server_tatus['status'] == "connected": 
-                        # serv.testEx()
-                        return jsonify({'etat': 'success', 'description': "process finished"})
+                        serv.testEx()
+                        result = jsonify({'etat': 'success', 'description': "process finished"})
                 else:
-                        return jsonify(server_tatus)
-        else:
-                return jsonify(filterFile)
-
+                        result = jsonify(server_tatus)
+        except Exception as e:
+                print(e)
+                result = {'etat':'error'}
+        
+        serv._server.close()
+        print(f"{colors.BOLD}{result}{colors.ENDC}")
+        return jsonify(result)
      
 ##CAPTURE HTML TO IMG
 @app.route('/capture')
@@ -195,6 +204,11 @@ def connectDWH():
         if server_tatus['status'] == "connected": 
                 serv.testEx()
         return jsonify(server_tatus)
+
+@app.route('/filterlisteCampagne')
+def filterListCamp():
+        camp.allCampgneByDATE()
+        return jsonify({"capture":"ok"})
 
 if __name__ == "__main__":
         app.run()

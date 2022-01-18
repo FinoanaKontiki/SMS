@@ -6,6 +6,7 @@ import re
 from requests.api import request
 from sms.authentification import authentification
 from datetime import datetime
+from dateutil import parser
 from uuid import uuid4
 class campagne(authentification):
     def __init__(self, accountID, token):
@@ -21,6 +22,17 @@ class campagne(authentification):
                 
     def getListCampage(self, skip=0, take=20, isArchived=False):
         url = self.pathInitApi_V1_message+self.accountID+"/messages?includePreview=true&isArchived="+str(isArchived).lower()+"&skip="+str(skip)+"&take="+str(take)
+        try:
+            req = requests.get(url,headers=self.headers)
+            result = self.findUrlInBodySMS(json.loads(req.text)) if req.status_code == 200 else {"etat": "error ", "etat_description": str(req.status_code)}
+            if "etat" not in result:
+                result = {"etat":"success", "value": result}
+        except Exception as e:
+            result = {"status": "error "+ str(e)}
+        return result
+
+    def getListCampageSent(self, skip=0, take=20, isArchived=False):
+        url = self.pathInitApi_V1_message+self.accountID+"/messages?status=sent&status=cancelled&status=failed&includePreview=true&isArchived="+str(isArchived).lower()+"&skip="+str(skip)+"&take="+str(take)
         try:
             req = requests.get(url,headers=self.headers)
             result = self.findUrlInBodySMS(json.loads(req.text)) if req.status_code == 200 else {"etat": "error ", "etat_description": str(req.status_code)}
@@ -208,4 +220,18 @@ class campagne(authentification):
                 result = {"status": "error "+ str(e)}
             
         return result    
-        
+    
+    def allCampgneByDATE(self, nbrJourToGet=31):
+        acount = self.getCountCampagne()
+        print(acount)
+        allCamp = self.getListCampageSent(take=acount['value']['sent'])
+        print(len(allCamp['value']))
+        list_camp_id = []
+        for camp in allCamp['value']:
+            if camp['status'] == "sent":
+                date_creation = parser.parse(camp['scheduledAtUtc'])
+                day_betwen = datetime.now().date() - date_creation.date()
+                if day_betwen.days <= nbrJourToGet:
+                    list_camp_id.append(camp['id'])
+        print(len(list_camp_id))
+        return list_camp_id        
