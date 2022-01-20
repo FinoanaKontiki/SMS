@@ -1,0 +1,4 @@
+{'etat': 'error ', 'etat_description': '<urlopen error retrieval incomplete: got only 4783601 out of 5129635 bytes>'},
+{'etat': 'error ', 'etat_description': '<urlopen error retrieval incomplete: got only 4914693 out of 5167572 bytes>'},
+{'etat': 'error ', 'etat_description': '<urlopen error retrieval incomplete: got only 4898309 out of 5167633 bytes>'},
+{'etat': 'error ', 'etat_description': '<urlopen error retrieval incomplete: got only 4701701 out of 5167633 bytes>'},

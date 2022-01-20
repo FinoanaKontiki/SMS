@@ -1,10 +1,12 @@
 import pandas as pd
 import urllib.request
 import os
-import time
-import json
 import threading
+import socket
+import numpy as np
+import asyncio
 
+from urllib.error import ContentTooShortError
 from datetime import datetime
 from pathlib import Path
 from pandas.core.algorithms import mode
@@ -65,7 +67,7 @@ class files(authentification):
                     fileContentFrame.at[i,'phone'] = "+33"+str(number)
              
         elif type == 'all':
-            self.filterFile(fileContentFrame)
+            self.filterFileToAppend(fileContentFrame)
             
         print(fileContentFrame['phone'])
         return fileContentFrame
@@ -92,23 +94,36 @@ class files(authentification):
                 pathSaveFile = os.path.join(self.directory,pathFolderFile)
                 url = self.pathInitApi_V1_message+self.accountID+"/messages/"+idCampagne+"/export?status="+fileType if fileType != "optedOut" else self.pathInitApi_V2_addressbook+self.accountID+"/optout/export?campaignId="+idCampagne
                 pathSaveFile = os.path.join(self.directory,pathFolderFile)
+                socket.setdefaulttimeout(60)
                 try:
                     confOpen = urllib.request.build_opener()
                     confOpen.addheaders=[('X-CM-PRODUCTTOKEN',self.token)]
                     urllib.request.install_opener(confOpen)
-                    urllib.request.urlretrieve(url,pathSaveFile)
-                    checkFile = Path(pathSaveFile)
-                    if checkFile.is_file():
-                        idStats = currentCamp['value']['name'].split('-')[2]
-                        print(f"{colors.OKCYAN} {idCampagne} ---  downloaded ---- {fileType}{colors.ENDC}")
-                        result = {"etat": "success", "pathFile":pathSaveFile, "idStats": idStats, "fileType": fileType}
-                    else:
-                        result = {"etat": "error ", "etat_description": "file not created"}
-                        print(f"{colors.FAIL} {idCampagne} ERROR Download--- in downloadFiles{colors.ENDC}")
-                        
-                except Exception as e:
-                    result = {"etat": "error ", "etat_description": str(e)}
-                    print(f"{colors.FAIL} {idCampagne} {str(e)}--- in downloadFiles{colors.ENDC}")
+                    urllib.request.urlretrieve(url,pathSaveFile)    
+                except (socket.timeout, ContentTooShortError) as e:
+                    trying = 1
+                    while trying <= 5:
+                        try:
+                            urllib.request.urlretrieve(url, pathSaveFile)
+                            break
+                        except (socket.timeout, ContentTooShortError) as e:
+                            print(f"{colors.FAIL} {idCampagne} timeout download --- try again {trying}{colors.ENDC}")
+                            self.writeToLog("Downoad_function",{"etat": "error ", "etat_description": str(e)})
+                            trying += 1
+                    if trying > 5:
+                        result = {"etat": "error ", "etat_description": "file not downloaded id = "+ idCampagne}
+                        print(f"{colors.FAIL} {idCampagne} ERROR download file id = {idCampagne}{colors.ENDC}")
+
+                    print(f"{colors.FAIL} {idCampagne} ERROR download --- try again {trying}{colors.ENDC}")
+                    self.writeToLog("Downoad_function",{"etat": "error ", "etat_description": str(e)})
+                checkFile = Path(pathSaveFile)
+                if checkFile.is_file():
+                    idStats = currentCamp['value']['name'].split('-')[2]
+                    print(f"{colors.OKCYAN} {idCampagne} ---  downloaded ---- {fileType}{colors.ENDC}")
+                    result = {"etat": "success", "pathFile":pathSaveFile, "idStats": idStats, "fileType": fileType}
+                else:
+                    result = {"etat": "error ", "etat_description": "file not created"}
+                    print(f"{colors.FAIL} {idCampagne} ERROR Download--- in downloadFiles{colors.ENDC}")
             else:
                 print(f"{colors.FAIL} {idCampagne} --- Status {currentCamp['value']['status']}{colors.ENDC}")
                 result = {"etat": "error ", "etat_description": "status "+ currentCamp['value']['status']}
@@ -118,9 +133,9 @@ class files(authentification):
             
         return result
     
-    def filterFile(self, dataInfoCreatedFile):
+    def filterFileToAppend(self, dataInfoCreatedFile , dataExist = pd.DataFrame()):
         try:
-            fileContentFrame = pd.read_csv(dataInfoCreatedFile['pathFile'], sep=',', na_filter=False)
+            fileContentFrame = pd.read_csv(dataInfoCreatedFile['pathFile'], sep=',', na_filter=False, on_bad_lines='skip', skip_blank_lines= True) if len(dataExist) < 1  else dataExist
             dataKonticrea = {"idStats":"04", "tag_campagne":"test", "code_pays":"fr"}
             fileContentFrame['idStats'] = dataKonticrea['idStats']
             fileContentFrame['tag_campagne'] = dataKonticrea['tag_campagne']
@@ -133,8 +148,33 @@ class files(authentification):
                     "tag_campagne" : fileContentFrame['tag_campagne'],
                     "code_pays" : fileContentFrame['code_pays'],
                 }
-            # elif dataInfoCreatedFile['fileType'] == "undelivered":
-            #    pass
+
+            elif dataInfoCreatedFile['fileType'] == "optedOutUndelivered":
+                data  = {
+                    "date_shoot" : fileContentFrame['Processed UTC'],
+                    "mobile" : fileContentFrame['Recipient'],
+                    "idStats" : fileContentFrame['idStats'],
+                    "tag_campagne" : fileContentFrame['tag_campagne'],
+                    "code_pays" : fileContentFrame['code_pays'],
+                }
+
+            elif dataInfoCreatedFile['fileType'] == "undelivered":
+                all_with_date = fileContentFrame[fileContentFrame["Status"] == "Failed"]
+                date_to_optout = all_with_date.at[1,"Processed UTC"]
+                true_date = lambda date,date_to: self.formDate(str(date)) if date != '' else self.formDate(str(date_to))
+                fileContentFrame['Processed UTC'] = np.vectorize(true_date)(fileContentFrame['Processed UTC'],date_to_optout)
+                data  = {
+                    "date_shoot" : fileContentFrame['Processed UTC'],
+                    "mobile" : fileContentFrame['Recipient'],
+                    "idStats" : fileContentFrame['idStats'],
+                    "tag_campagne" : fileContentFrame['tag_campagne'],
+                    "code_pays" : fileContentFrame['code_pays'],
+                }
+                dataOpted = fileContentFrame[fileContentFrame['Status']=='OptedOut']
+                if len(dataOpted) > 1:
+                    dataInfoCreatedFile = {"pathFile":"async","fileType": "optedOutUndelivered"}
+                    asyncio.run(self.updateOptOutByUndelivered(dataInfoCreatedFile=dataInfoCreatedFile, data=dataOpted))
+                    next
             else:
                 data={
                     "date_shoot" : fileContentFrame['Processed UTC'].apply(lambda date: self.formDate(str(date))),
@@ -145,28 +185,34 @@ class files(authentification):
                 }
                 
             resultFrame = pd.DataFrame(data)
-            # withstatus = fileContentFrame[fileContentFrame["Status"] == "Failed"]
-            # print(withstatus.at[1,"Processed UTC"])
+            
             # print(withstatus)
+            # print(resultFrame)
             # print(resultFrame[resultFrame['date_shoot']==''])
             return resultFrame
         except Exception as e:
             print(f"{colors.FAIL} ERROR: {str(e)}  PATH: {dataInfoCreatedFile['pathFile']} {colors.ENDC}")
             self.writeToLog("filterFile_function",{"etat": "error ", "etat_description": str(e)})
             return {'etat':'ERROR'}
-    
+
+    async def updateOptOutByUndelivered(self, dataInfoCreatedFile, data):
+        print('async-------------------------------------')
+        data_append = self.filterFileToAppend(dataInfoCreatedFile=dataInfoCreatedFile, dataExist= data)
+        if isinstance(data_append,DataFrame,):
+            self.appendContentsInFile(data_append, 'optedOut')
+
     def launchDWHUpdate(self, campagneList,fileType):
         for idCamp in campagneList:
             infoCurrentCamp =  self.downloadFiles(idCamp,fileType)
             if "etat" in  infoCurrentCamp and infoCurrentCamp["etat"] == "success":
-                dataToAppend = self.filterFile(infoCurrentCamp)
+                dataToAppend = self.filterFileToAppend(infoCurrentCamp)
                 if isinstance(dataToAppend,DataFrame):
                     appendResult = self.appendContentsInFile(dataToAppend,fileType)
                     appendResult['idCampagne'] = idCamp 
                     self.writeToLog(fileType,appendResult)
                     if appendResult['etat'] == 'success':
                         print(f"{colors.OKCYAN} File download ID: {idCamp} -------------- {fileType}{colors.ENDC}")
-                        os.remove(infoCurrentCamp['pathFile'])
+                        # os.remove(infoCurrentCamp['pathFile'])
                     else:
                         print(f"{colors.FAIL} {idCamp} error--------Fies not removed--- {fileType}{colors.ENDC}")
                         print(appendResult)

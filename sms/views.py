@@ -1,5 +1,8 @@
+import atexit
+from sched import scheduler
 from select import select
 from flask import Flask,jsonify,request
+from flask.helpers import url_for
 from .sources.server.ftp import ftp
 from .sources.server.files import files
 from .sources.server.ftp import ftp
@@ -8,8 +11,8 @@ from .sources.message.campagne import campagne
 from .sources.message.contacts import contacts
 from .sources.capture.image import image
 from sms.color import colors
-app = Flask(__name__)
 
+app = Flask(__name__)
 # Config options - Make sure you created a 'config.py' file.
 app.config.from_object('config')
 # To get one variable, tape app.config['MY_VARIABLE']
@@ -149,11 +152,12 @@ def downloadFile():
 @app.route('/filter')
 def filter():
         file = files("34f7db5c-48ac-42c2-8f5e-da39e4e28bbe","36864ae2-4ff5-422b-af69-f5cafaaa413a")
-        path = "C:\\PROJECT\\SMS\\sms\\tmp\\converted\\a26aa25e-e86e-4189-a930-2124a85809ad_20211221T114030347922Z_converted.csv"
-        dataFile = {"etat": "success", "pathFile":path, "idStats": "02", "fileType": "converted"}
-        resultFilter = file.filterFile(dataFile)
-        pathAppend = "C:\\PROJECT\\SMS\\sms\\tmp\\Append\\TEST.csv"
-        add = file.appendContentsInFile(dataToAppend=resultFilter, fileType="converted")
+        # path = "C:\\PROJECT\\SMS\\sms\\tmp\\converted\\a26aa25e-e86e-4189-a930-2124a85809ad_20211221T114030347922Z_converted.csv"
+        path = "/home/finoana/Documents/PROJECT/SMS/sms/tmp/undelivered/e3b89ff0-d62b-40e3-aec6-7e58202f2680_20220112T104400Z_undelivered.csv"
+        dataFile = {"etat": "success", "pathFile":path, "idStats": "02", "fileType": "undelivered"}
+        resultFilter = file.filterFileToAppend(dataFile)
+        # pathAppend = "C:\\PROJECT\\SMS\\sms\\tmp\\Append\\TEST.csv"
+        # add = file.appendContentsInFile(dataToAppend=resultFilter, fileType="converted")
         # return jsonify(result.to_json(orient='records')[1:-1].replace('},{', '} {'))
         return jsonify({"capture":"ok"})
 
@@ -164,11 +168,14 @@ def filter():
 #######################
 @app.route('/lunch_DWH_maj', methods=['GET'])
 def lunch():
+        print("----depart-----")
         file = files(accountID=app.config['ACCOUNTID'],token=app.config['TOKEN'])
         serv = ftp(host=app.config['HOST'],user=app.config['USER'], pwd=app.config['PASS'])
         # listeCampagne = request.json["list"]
-        listSent = camp.allCampgneByDATE()
-        listSplit = file.splitCampagneIDLIst(listSent,5)
+        # listSent = camp.allCampgneByDATE()
+        # listSplit = file.splitCampagneIDLIst(listSent,5)
+        # listSplit = [['d082f904-643e-4487-b25c-030f724818c7']]
+        listSplit = [['e3b89ff0-d62b-40e3-aec6-7e58202f2680']]
         try:
                 for listeCampagne in listSplit:
                         file.executThread(listeCampagne)
@@ -185,7 +192,7 @@ def lunch():
         
         serv._server.close()
         print(f"{colors.BOLD}{result}{colors.ENDC}")
-        return jsonify(result)
+        # return jsonify(result)
      
 ##CAPTURE HTML TO IMG
 @app.route('/capture')
@@ -209,6 +216,9 @@ def connectDWH():
 def filterListCamp():
         camp.allCampgneByDATE()
         return jsonify({"capture":"ok"})
+
+def test_cron():
+        print("Mandeha ------")
 
 if __name__ == "__main__":
         app.run()
