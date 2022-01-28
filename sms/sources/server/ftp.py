@@ -62,6 +62,7 @@ class ftp():
             localFilePath = self.docFiles+"//FTPFiles//"+fileName
             self._server.put(localpath=localFilePath,remotepath=sftpPath)
             if self._server.exists(sftpPath):
+                os.remove(localFilePath)
                 print(f"{colors.OKGREEN}{fileTypeInSftp} ---Uploaded----{colors.ENDC}")
             else:
                 print(f"{colors.FAIL} file {fileTypeInSftp} not uploaded path local: {localFilePath} {colors.ENDC}")

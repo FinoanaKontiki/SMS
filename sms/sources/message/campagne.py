@@ -228,10 +228,27 @@ class campagne(authentification):
         print(len(allCamp['value']))
         list_camp_id = []
         for camp in allCamp['value']:
+            # if camp['status'] == "sent" and "Verisure" in camp['name']:
             if camp['status'] == "sent":
                 date_creation = parser.parse(camp['scheduledAtUtc'])
                 day_betwen = datetime.now().date() - date_creation.date()
                 if day_betwen.days <= nbrJourToGet:
                     list_camp_id.append(camp['id'])
         print(len(list_camp_id))
-        return list_camp_id        
+        return list_camp_id 
+
+    def getBase(self):
+        acount = self.getCountCampagne()
+        allCamp = self.getListCampageSent(take=acount['value']['sent'])
+        data = []
+        for d in allCamp['value']:
+            try:
+                idStats = d['name'].split('-')[2]
+                data.append(idStats)
+            except IndexError:
+                print(d['name'],'-------ERROR')
+                pass
+        print(len(data),"---------avant")
+        data = list(dict.fromkeys(data))
+        print(len(data),"---------Apres")
+        return data

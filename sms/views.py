@@ -172,10 +172,11 @@ def lunch():
         file = files(accountID=app.config['ACCOUNTID'],token=app.config['TOKEN'])
         serv = ftp(host=app.config['HOST'],user=app.config['USER'], pwd=app.config['PASS'])
         # listeCampagne = request.json["list"]
-        # listSent = camp.allCampgneByDATE()
-        # listSplit = file.splitCampagneIDLIst(listSent,5)
+        # base = camp.getBase()
+        listSent = camp.allCampgneByDATE(nbrJourToGet=31)
+        listSplit = file.splitCampagneIDLIst(listSent,5)
         # listSplit = [['d082f904-643e-4487-b25c-030f724818c7']]
-        listSplit = [['e3b89ff0-d62b-40e3-aec6-7e58202f2680']]
+        # listSplit = [['6c6f7efd-d7c7-4f21-b5b1-5c5c30fc7dd7']]
         try:
                 for listeCampagne in listSplit:
                         file.executThread(listeCampagne)
@@ -190,9 +191,10 @@ def lunch():
                 print(e)
                 result = {'etat':'error'}
         
-        serv._server.close()
-        print(f"{colors.BOLD}{result}{colors.ENDC}")
-        # return jsonify(result)
+        # serv._server.close()
+        # print(f"{colors.BOLD}{result}{colors.ENDC}")
+        # return jsonify(base)
+        return jsonify({"test":"ok"})
      
 ##CAPTURE HTML TO IMG
 @app.route('/capture')

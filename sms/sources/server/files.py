@@ -29,7 +29,7 @@ class files(authentification):
             
     def formDate(self,date):
         dateSplit = date.split('-')
-        if dateSplit[0] != '':
+        if dateSplit[0] != '' and len(date) == 16:
             try:
                 dateShoot = dateSplit[2].split(' ')[0]+"/"+dateSplit[1]+"/"+dateSplit[0]
             except Exception as e:
@@ -118,7 +118,8 @@ class files(authentification):
                     self.writeToLog("Downoad_function",{"etat": "error ", "etat_description": str(e)})
                 checkFile = Path(pathSaveFile)
                 if checkFile.is_file():
-                    idStats = currentCamp['value']['name'].split('-')[2]
+                    # idStats = currentCamp['value']['name'].split('-')[2]
+                    idStats = 2
                     print(f"{colors.OKCYAN} {idCampagne} ---  downloaded ---- {fileType}{colors.ENDC}")
                     result = {"etat": "success", "pathFile":pathSaveFile, "idStats": idStats, "fileType": fileType}
                 else:
@@ -136,60 +137,66 @@ class files(authentification):
     def filterFileToAppend(self, dataInfoCreatedFile , dataExist = pd.DataFrame()):
         try:
             fileContentFrame = pd.read_csv(dataInfoCreatedFile['pathFile'], sep=',', na_filter=False, on_bad_lines='skip', skip_blank_lines= True) if len(dataExist) < 1  else dataExist
-            dataKonticrea = {"idStats":"04", "tag_campagne":"test", "code_pays":"fr"}
-            fileContentFrame['idStats'] = dataKonticrea['idStats']
-            fileContentFrame['tag_campagne'] = dataKonticrea['tag_campagne']
-            fileContentFrame['code_pays'] = dataKonticrea['code_pays']
-            if dataInfoCreatedFile['fileType'] == "optedOut":
-                data  = {
-                    "date_shoot" : fileContentFrame['DateUtc'].apply(lambda date: self.formDate(str(date))),
-                    "mobile" : fileContentFrame['OptOutValue'],
-                    "idStats" : fileContentFrame['idStats'],
-                    "tag_campagne" : fileContentFrame['tag_campagne'],
-                    "code_pays" : fileContentFrame['code_pays'],
-                }
+            if fileContentFrame.empty == False:
+                dataKonticrea = {"idStats":"04", "tag_campagne":"test", "code_pays":"fr"}
+                fileContentFrame.loc[:,'idStats'] = dataKonticrea['idStats']
+                fileContentFrame.loc[:,'tag_campagne'] = dataKonticrea['tag_campagne']
+                fileContentFrame.loc[:,'code_pays'] = dataKonticrea['code_pays']
+                if dataInfoCreatedFile['fileType'] == "optedOut":
+                    data  = {
+                        "date_shoot" : fileContentFrame['DateUtc'].apply(lambda date: self.formDate(str(date))),
+                        "mobile" : fileContentFrame['OptOutValue'],
+                        "idStats" : fileContentFrame['idStats'],
+                        "tag_campagne" : fileContentFrame['tag_campagne'],
+                        "code_pays" : fileContentFrame['code_pays'],
+                    }
 
-            elif dataInfoCreatedFile['fileType'] == "optedOutUndelivered":
-                data  = {
-                    "date_shoot" : fileContentFrame['Processed UTC'],
-                    "mobile" : fileContentFrame['Recipient'],
-                    "idStats" : fileContentFrame['idStats'],
-                    "tag_campagne" : fileContentFrame['tag_campagne'],
-                    "code_pays" : fileContentFrame['code_pays'],
-                }
+                elif dataInfoCreatedFile['fileType'] == "optedOutUndelivered":
+                    data  = {
+                        "date_shoot" : fileContentFrame['Processed UTC'],
+                        "mobile" : fileContentFrame['Recipient'],
+                        "idStats" : fileContentFrame['idStats'],
+                        "tag_campagne" : fileContentFrame['tag_campagne'],
+                        "code_pays" : fileContentFrame['code_pays'],
+                    }
 
-            elif dataInfoCreatedFile['fileType'] == "undelivered":
-                all_with_date = fileContentFrame[fileContentFrame["Status"] == "Failed"]
-                date_to_optout = all_with_date.at[1,"Processed UTC"]
-                true_date = lambda date,date_to: self.formDate(str(date)) if date != '' else self.formDate(str(date_to))
-                fileContentFrame['Processed UTC'] = np.vectorize(true_date)(fileContentFrame['Processed UTC'],date_to_optout)
-                data  = {
-                    "date_shoot" : fileContentFrame['Processed UTC'],
-                    "mobile" : fileContentFrame['Recipient'],
-                    "idStats" : fileContentFrame['idStats'],
-                    "tag_campagne" : fileContentFrame['tag_campagne'],
-                    "code_pays" : fileContentFrame['code_pays'],
-                }
-                dataOpted = fileContentFrame[fileContentFrame['Status']=='OptedOut']
-                if len(dataOpted) > 1:
-                    dataInfoCreatedFile = {"pathFile":"async","fileType": "optedOutUndelivered"}
-                    asyncio.run(self.updateOptOutByUndelivered(dataInfoCreatedFile=dataInfoCreatedFile, data=dataOpted))
-                    next
+                elif dataInfoCreatedFile['fileType'] == "undelivered":
+                    all_with_date = fileContentFrame[fileContentFrame["Status"] == "Failed"]
+                    all_with_date.reset_index(drop=True, inplace= True)
+                    date_to_optout = all_with_date["Processed UTC"].iloc[0]
+                    true_date = lambda date,date_to: self.formDate(str(date)) if date != '' else self.formDate(str(date_to))
+                    fileContentFrame['Processed UTC'] = np.vectorize(true_date)(fileContentFrame['Processed UTC'],date_to_optout)
+                    data_undeliver = fileContentFrame[fileContentFrame['Status'] == "Failed"]
+                    data  = {
+                        "date_shoot" : data_undeliver['Processed UTC'],
+                        "mobile" : data_undeliver['Recipient'],
+                        "idStats" : data_undeliver['idStats'],
+                        "tag_campagne" : data_undeliver['tag_campagne'],
+                        "code_pays" : data_undeliver['code_pays'],
+                    }
+                    dataOpted = fileContentFrame[fileContentFrame['Status']=='OptedOut']
+                    if len(dataOpted) > 1:
+                        dataInfoCreatedFile = {"pathFile":"async","fileType": "optedOutUndelivered"}
+                        asyncio.run(self.updateOptOutByUndelivered(dataInfoCreatedFile=dataInfoCreatedFile, data=dataOpted))
+                        next
+                else:
+                    data={
+                        "date_shoot" : fileContentFrame['Processed UTC'].apply(lambda date: self.formDate(str(date))),
+                        "mobile" : fileContentFrame['Recipient'],
+                        "idStats" : fileContentFrame['idStats'],
+                        "tag_campagne" : fileContentFrame['tag_campagne'],
+                        "code_pays" : fileContentFrame['code_pays'],
+                    }
+                    
+                resultFrame = pd.DataFrame(data)
+                # print(withstatus)
+                # print(resultFrame)
+                result = resultFrame[resultFrame['date_shoot']!='']
+                return result
             else:
-                data={
-                    "date_shoot" : fileContentFrame['Processed UTC'].apply(lambda date: self.formDate(str(date))),
-                    "mobile" : fileContentFrame['Recipient'],
-                    "idStats" : fileContentFrame['idStats'],
-                    "tag_campagne" : fileContentFrame['tag_campagne'],
-                    "code_pays" : fileContentFrame['code_pays'],
-                }
-                
-            resultFrame = pd.DataFrame(data)
-            
-            # print(withstatus)
-            # print(resultFrame)
-            # print(resultFrame[resultFrame['date_shoot']==''])
-            return resultFrame
+                os.remove(dataInfoCreatedFile['pathFile'])
+                print(f"{colors.FAIL} ERROR: ---file Empty  PATH: {dataInfoCreatedFile['pathFile']} {colors.ENDC}")
+                return {'etat':'ERROR'}
         except Exception as e:
             print(f"{colors.FAIL} ERROR: {str(e)}  PATH: {dataInfoCreatedFile['pathFile']} {colors.ENDC}")
             self.writeToLog("filterFile_function",{"etat": "error ", "etat_description": str(e)})
@@ -212,7 +219,7 @@ class files(authentification):
                     self.writeToLog(fileType,appendResult)
                     if appendResult['etat'] == 'success':
                         print(f"{colors.OKCYAN} File download ID: {idCamp} -------------- {fileType}{colors.ENDC}")
-                        # os.remove(infoCurrentCamp['pathFile'])
+                        os.remove(infoCurrentCamp['pathFile'])
                     else:
                         print(f"{colors.FAIL} {idCamp} error--------Fies not removed--- {fileType}{colors.ENDC}")
                         print(appendResult)
@@ -226,6 +233,7 @@ class files(authentification):
             optedOut=threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"optedOut"))
             delivered=threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"delivered"))
             theadList = [undelivered,converted,optedOut,delivered]
+            # theadList = [optedOut]
             [t.start() for t in theadList]
             [t.join() for t in theadList]
             print(f"{colors.OKGREEN}--- All process executed ---{colors.ENDC}")
