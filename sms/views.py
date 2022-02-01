@@ -173,9 +173,9 @@ def lunch():
         serv = ftp(host=app.config['HOST'],user=app.config['USER'], pwd=app.config['PASS'])
         # listeCampagne = request.json["list"]
         # base = camp.getBase()
-        listSent = camp.allCampgneByDATE(nbrJourToGet=31)
-        listSplit = file.splitCampagneIDLIst(listSent,5)
-        # listSplit = [['d082f904-643e-4487-b25c-030f724818c7']]
+        # listSent = camp.allCampgneByDATE(nbrJourToGet=95)
+        # listSplit = file.splitCampagneIDLIst(listSent,5)
+        listSplit = [['d082f904-643e-4487-b25c-030f724818c7']]
         # listSplit = [['6c6f7efd-d7c7-4f21-b5b1-5c5c30fc7dd7']]
         try:
                 for listeCampagne in listSplit:

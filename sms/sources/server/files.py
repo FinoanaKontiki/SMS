@@ -19,11 +19,11 @@ class files(authentification):
     def __init__(self, accountID, token):
         super().__init__(accountID, token)
         self.directory = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        self.docFiles = self.directory+"//tmp//"
+        self.docFiles = self.directory+self.pathByOs+"tmp"+self.pathByOs
         
     ##Fonctionlity Util 
     def writeToLog(self, logName, data):
-        pathLog =  self.docFiles+"LOG//"+logName+"_"+data['etat']+".txt"
+        pathLog =  self.docFiles+"LOG"+self.pathByOs+logName+"_"+data['etat']+".txt"
         with open(pathLog,"a") as f:
             f.write(str(data)+",\n")
             
@@ -75,7 +75,7 @@ class files(authentification):
     def appendContentsInFile(self, dataToAppend, fileType):
         try:
             fileName = str(datetime.now().strftime("%Y%m%d"))+"_"+fileType+"_SMS.csv"
-            newFTPfile = self.docFiles+"FTPFiles//"+fileName
+            newFTPfile = self.docFiles+"FTPFiles"+self.pathByOs+fileName
             dataToAppend.to_csv(newFTPfile, sep=',', mode='a', index =False, header=False)
             result = {"etat": "success", "date": str(datetime.now())}
         except Exception as e:
@@ -90,7 +90,7 @@ class files(authentification):
             if currentCamp['value']['status'] == "sent":
                 dateShoot = currentCamp['value']['scheduledAtUtc']
                 dateShoot = self.replaceCharMultiple(currentCamp['value']['scheduledAtUtc'],((":",""),(".",""),("-","")))
-                pathFolderFile = "tmp//"+fileType+"//"+idCampagne+"_"+dateShoot+"_"+fileType+".csv"
+                pathFolderFile = "tmp"+self.pathByOs+fileType+self.pathByOs+idCampagne+"_"+dateShoot+"_"+fileType+".csv"
                 pathSaveFile = os.path.join(self.directory,pathFolderFile)
                 url = self.pathInitApi_V1_message+self.accountID+"/messages/"+idCampagne+"/export?status="+fileType if fileType != "optedOut" else self.pathInitApi_V2_addressbook+self.accountID+"/optout/export?campaignId="+idCampagne
                 pathSaveFile = os.path.join(self.directory,pathFolderFile)
@@ -137,6 +137,7 @@ class files(authentification):
     def filterFileToAppend(self, dataInfoCreatedFile , dataExist = pd.DataFrame()):
         try:
             fileContentFrame = pd.read_csv(dataInfoCreatedFile['pathFile'], sep=',', na_filter=False, on_bad_lines='skip', skip_blank_lines= True) if len(dataExist) < 1  else dataExist
+            # fileContentFrame = pd.read_csv(dataInfoCreatedFile['pathFile'], sep=',', na_filter=False, skip_blank_lines= True, engine='python', error_bad_lines=False) if len(dataExist) < 1  else dataExist
             if fileContentFrame.empty == False:
                 dataKonticrea = {"idStats":"04", "tag_campagne":"test", "code_pays":"fr"}
                 fileContentFrame.loc[:,'idStats'] = dataKonticrea['idStats']

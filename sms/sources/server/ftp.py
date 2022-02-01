@@ -2,6 +2,7 @@ import queue
 import threading
 import pysftp
 import os
+import platform
 
 from sms.color import colors 
 from datetime import datetime
@@ -14,8 +15,9 @@ class ftp():
         self.pwd = pwd
         self.host = host
         self._server = ""
-        self.docFiles = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))+"//tmp//"
-        self.sftpPath = "/ftp_down/SMS/"
+        self.pathByOs = "\\" if platform.system() == "Windows" else "//"
+        self.docFiles = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))+self.pathByOs+"tmp"+self.pathByOs
+        self.sftpPath = self.pathByOs+"ftp_down"+self.pathByOs+"SMS"+self.pathByOs
     
     def connectToServer(self):
         try:
@@ -34,14 +36,14 @@ class ftp():
         try:
             print(f"{colors.WARNING}{fileTypeInSftp} Create backUp----{colors.ENDC}")
             sftpPath = os.path.join(self.sftpPath,fileTypeInSftp)
-            locaPath = os.path.join(self.docFiles,"backupFTP//"+localFolderName)
+            locaPath = os.path.join(self.docFiles,"backupFTP"+self.pathByOs+localFolderName)
             self._server.get_d(remotedir=sftpPath,localdir=locaPath, preserve_mtime= True)
             self._server.cwd(sftpPath)
             listFileInDoc = self._server.listdir()
             for file in listFileInDoc:
-                pathLocalFileBackUp = Path(locaPath+"//"+file)
+                pathLocalFileBackUp = Path(locaPath+self.pathByOs+file)
                 if isfile(pathLocalFileBackUp):
-                    self._server.remove(remotefile=sftpPath+"/"+file)
+                    self._server.remove(remotefile=sftpPath+self.pathByOs+file)
                 else:
                     status = False
                     print(f"{colors.FAIL} ERROR create {fileTypeInSftp} backUp file {colors.ENDC}")
@@ -58,8 +60,8 @@ class ftp():
         try:
             print(f"{colors.WARNING}{fileTypeInSftp} Start upload----{colors.ENDC}")
             fileName = str(datetime.now().strftime("%Y%m%d"))+"_"+localFolderName+"_SMS.csv"
-            sftpPath = self.sftpPath+"/"+fileTypeInSftp+"/"+fileName
-            localFilePath = self.docFiles+"//FTPFiles//"+fileName
+            sftpPath = self.sftpPath+self.pathByOs+fileTypeInSftp+self.pathByOs+fileName
+            localFilePath = self.docFiles+self.pathByOs+"FTPFiles"+self.pathByOs+fileName
             self._server.put(localpath=localFilePath,remotepath=sftpPath)
             if self._server.exists(sftpPath):
                 os.remove(localFilePath)

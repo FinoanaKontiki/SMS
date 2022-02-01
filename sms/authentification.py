@@ -1,4 +1,5 @@
 import json
+import platform
 class authentification:
     def __init__(self, accountID, token):
         self.accountID = accountID
@@ -8,7 +9,7 @@ class authentification:
         self.pathInitApi_V2_message = "https://api.cm.com/messages/v2/accounts/"
         self.pathInitApi_V2_addressbook = "https://api.cm.com/addressbook/v2/accounts/"
         self.checkRequest = lambda request : json.loads(request.text) if request.status_code == 200 or request.status_code == 201  else {"etat": "error ", "etat_description": str(request.status_code)} 
-        
+        self.pathByOs = "\\" if platform.system() == "Windows" else "//"
         
     def replaceCharMultiple(self, string,tupleChar):
         for cr in tupleChar:

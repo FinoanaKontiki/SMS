@@ -228,8 +228,8 @@ class campagne(authentification):
         print(len(allCamp['value']))
         list_camp_id = []
         for camp in allCamp['value']:
-            # if camp['status'] == "sent" and "Verisure" in camp['name']:
-            if camp['status'] == "sent":
+            if camp['status'] == "sent" and "Verisure" in camp['name']:
+            # if camp['status'] == "sent":
                 date_creation = parser.parse(camp['scheduledAtUtc'])
                 day_betwen = datetime.now().date() - date_creation.date()
                 if day_betwen.days <= nbrJourToGet:
