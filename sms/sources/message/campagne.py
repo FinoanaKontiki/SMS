@@ -221,15 +221,17 @@ class campagne(authentification):
             
         return result    
     
-    def allCampgneByDATE(self, nbrJourToGet=31):
+    def allCampgneByDATE(self, nbrJourToGet=31, byfilter=""):
         acount = self.getCountCampagne()
         print(acount)
         allCamp = self.getListCampageSent(take=acount['value']['sent'])
         print(len(allCamp['value']))
         list_camp_id = []
         for camp in allCamp['value']:
-            if camp['status'] == "sent" and "Verisure" in camp['name']:
-            # if camp['status'] == "sent":
+            # if camp['status'] == "sent" and "Verisure" in camp['name']:
+            if camp['status'] == "sent":
+                with open("id_campagnes.csv", "a") as f:
+                    f.write(camp['id']+";\n")
                 date_creation = parser.parse(camp['scheduledAtUtc'])
                 day_betwen = datetime.now().date() - date_creation.date()
                 if day_betwen.days <= nbrJourToGet:
