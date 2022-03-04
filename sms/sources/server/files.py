@@ -219,7 +219,7 @@ class files(authentification):
                 return {'etat':'ERROR'}
         except Exception as e:
             print(f"{colors.FAIL} ERROR: {str(e)}  PATH: {dataInfoCreatedFile['pathFile']} {colors.ENDC}")
-            self.writeToLog("filterFile_function",{"etat": "error ", "etat_description": str(e)})
+            self.writeToLog("filterFile_function",{"etat": "error ", "etat_description": str(e), "date": str(datetime.now()), "id": dataInfoCreatedFile['idCampagne']})
             return {'etat':'ERROR'}
 
     async def updateOptOutByUndelivered(self, dataInfoCreatedFile, data):
@@ -278,6 +278,7 @@ class files(authentification):
                 "tool_id": listIDCampagne,
                 "stats_apikey": self.stats_apikey
             }
+            print(data)
             url = "http://vps-e1758d70.vps.ovh.net:5009/api/sms/export/getData"
             # url = "http://192.168.210.103:5009/api/sms/export/getData"
             req = requests.post(url,json=data)
@@ -285,11 +286,14 @@ class files(authentification):
         except Exception as e:
             result = {"etat": "error "+ str(e)}
             print(f"{colors.FAIL} ERROR--{str(e)} {colors.ENDC}")
+
+        print(result)
         return result
 
     def getDataKonticrea (self, idCamp):
         data = []
         if len(self.all_campagne_with_data_konticrea) != 0:
+            print()
             for dataKonti in self.all_campagne_with_data_konticrea:
                 if dataKonti['idCampagne'] == idCamp:
                     data = dataKonti

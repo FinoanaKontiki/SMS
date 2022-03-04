@@ -197,7 +197,7 @@ def lunch():
         # serv._server.close()
         # print(f"{colors.BOLD}{result}{colors.ENDC}")
         # return jsonify(base)
-        return jsonify({"test":"ok"})
+        # return jsonify({"test":"ok"})
      
 ##CAPTURE HTML TO IMG
 @app.route('/capture')
