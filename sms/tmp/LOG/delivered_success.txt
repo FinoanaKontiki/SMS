@@ -23,3 +23,8 @@
 {'etat': 'success', 'date': '2022-03-04 09:36:28.499718', 'idCampagne': '44461128-efbd-478e-bb96-a4b2a8444bc3'},
 {'etat': 'success', 'date': '2022-03-04 09:36:31.390168', 'idCampagne': '3315a149-424d-498e-abad-bc6cf45f2265'},
 {'etat': 'success', 'date': '2022-03-04 09:36:35.898853', 'idCampagne': '9ef13be4-3701-42e5-a973-a113dc8360aa'},
+{'etat': 'success', 'date': '2022-03-04 09:36:44.983900', 'idCampagne': 'c2c04ef4-d8e1-4ec2-bd3e-e368b0541fa6'},
+{'etat': 'success', 'date': '2022-03-04 09:36:55.415700', 'idCampagne': '86abba38-a3f3-40fb-b595-a34cd8fc5a6e'},
+{'etat': 'success', 'date': '2022-03-04 09:37:07.169534', 'idCampagne': 'da27a17d-860c-4ab3-b082-9362b503aa88'},
+{'etat': 'success', 'date': '2022-03-04 09:37:18.463201', 'idCampagne': 'ba0f6b95-e10f-4f3d-b7e6-6f2dc228834e'},
+{'etat': 'success', 'date': '2022-03-04 09:37:28.173764', 'idCampagne': '63fc0555-9205-47fd-ad54-ffc86c932f38'},
