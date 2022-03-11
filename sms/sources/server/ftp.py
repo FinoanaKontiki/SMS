@@ -8,7 +8,7 @@ from sms.color import colors
 from datetime import datetime
 from genericpath import isfile
 from pathlib import Path
-
+from os import listdir
 class ftp():
     def __init__(self,user,pwd,host):
         self.user = user
@@ -37,9 +37,17 @@ class ftp():
             print(f"{colors.WARNING}{fileTypeInSftp} Create backUp----{colors.ENDC}")
             sftpPath = os.path.join(self.sftpPath,fileTypeInSftp)
             locaPath = os.path.join(self.docFiles,"backupFTP"+self.pathByOs+localFolderName)
-            self._server.get_d(remotedir=sftpPath,localdir=locaPath, preserve_mtime= True)
             self._server.cwd(sftpPath)
             listFileInDoc = self._server.listdir()
+            fileInLocalBackUp = listdir(locaPath)
+            list_serve_doc = self._server.listdir(remotepath=sftpPath)
+            for serv_file in list_serve_doc:
+                if serv_file not in fileInLocalBackUp:
+                    print("LOCALE ---------------")
+                    print(serv_file)
+                    self._server.get_d(remotedir=sftpPath,localdir=locaPath, preserve_mtime= True)
+            print(listFileInDoc)
+            print(fileInLocalBackUp)
             for file in listFileInDoc:
                 pathLocalFileBackUp = Path(locaPath+self.pathByOs+file)
                 if isfile(pathLocalFileBackUp):
@@ -60,8 +68,8 @@ class ftp():
     def uploadToSFTP(self, localFolderName, fileTypeInSftp):
         try:
             print(f"{colors.WARNING}{fileTypeInSftp} Start upload----{colors.ENDC}")
-            # fileName = str(datetime.now().strftime("%Y%m%d"))+"_"+localFolderName+"_SMS.csv"
-            fileName = "20220224_"+localFolderName+"_SMS.csv"
+            fileName = str(datetime.now().strftime("%Y%m%d"))+"_"+localFolderName+"_SMS.csv"
+            # fileName = "20220305_"+localFolderName+"_SMS.csv"
             sftpPath = self.sftpPath+self.pathByOs+fileTypeInSftp+self.pathByOs+fileName
             localFilePath = self.docFiles+self.pathByOs+"FTPFiles"+self.pathByOs+fileName
             self._server.put(localpath=localFilePath,remotepath=sftpPath)

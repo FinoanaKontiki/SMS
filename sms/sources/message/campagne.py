@@ -227,6 +227,7 @@ class campagne(authentification):
         allCamp = self.getListCampageSent(take=acount['value']['sent'])
         print(len(allCamp['value']))
         list_camp_id = []
+        camp_name = {}
         for camp in allCamp['value']:
             # if camp['status'] == "sent" and "Verisure" in camp['name']:
             if camp['status'] == "sent":
@@ -236,8 +237,13 @@ class campagne(authentification):
                 day_betwen = datetime.now().date() - date_creation.date()
                 if day_betwen.days <= nbrJourToGet:
                     list_camp_id.append(camp['id'])
+                    camp_name[camp['id']] = camp['name']
         print(len(list_camp_id))
-        return list_camp_id 
+        result = {
+            "list_camp_id": list_camp_id,
+            "camp_name": camp_name
+        }
+        return result 
 
     def getBase(self):
         acount = self.getCountCampagne()

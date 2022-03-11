@@ -1,0 +1,67 @@
+{'date_shoot': 1      10/03/2022 10:45
+2      10/03/2022 10:45
+3      10/03/2022 10:45
+4      10/03/2022 10:45
+5      10/03/2022 10:45
+             ...       
+647    10/03/2022 10:45
+648    10/03/2022 10:45
+649    10/03/2022 10:45
+650    10/03/2022 10:45
+651    10/03/2022 10:45
+Name: Processed UTC, Length: 606, dtype: object, 'mobile': 1      33668059875
+2      33623604059
+3      33767567409
+4      33613180129
+5      33641336485
+          ...     
+647    33694676464
+648    33684233996
+649    33608326104
+650    33658198178
+651    33651395443
+Name: Recipient, Length: 606, dtype: object, 'idStats': 1      00
+2      00
+3      00
+4      00
+5      00
+       ..
+647    00
+648    00
+649    00
+650    00
+651    00
+Name: idStats, Length: 606, dtype: object, 'tag_campagne': 1      None
+2      None
+3      None
+4      None
+5      None
+       ... 
+647    None
+648    None
+649    None
+650    None
+651    None
+Name: tag_campagne, Length: 606, dtype: object, 'code_pays': 1      fr
+2      fr
+3      fr
+4      fr
+5      fr
+       ..
+647    fr
+648    fr
+649    fr
+650    fr
+651    fr
+Name: code_pays, Length: 606, dtype: object, 'error_code': 0        
+1      26
+2      23
+3      23
+4      23
+       ..
+647    23
+648    24
+649    24
+650    23
+651    23
+Name: ErrorCode, Length: 652, dtype: object}

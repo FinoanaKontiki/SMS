@@ -175,9 +175,11 @@ def lunch():
         # listeCampagne = request.json["list"]
         # base = camp.getBase()
         start = time()
-        listSent = camp.allCampgneByDATE(nbrJourToGet=31)
+        camp_infoAll = camp.allCampgneByDATE(nbrJourToGet=31)
+        listSent = camp_infoAll['list_camp_id']
         listSplit = file.splitCampagneIDLIst(listSent,5)
-        # listSplit = [['d082f904-643e-4487-b25c-030f724818c7']]
+        file.camp_list_name = camp_infoAll['camp_name']
+        # listSplit = [['6de77092-6f6e-446d-8eb2-3966b8532edc']]
         # listSplit = [['6c6f7efd-d7c7-4f21-b5b1-5c5c30fc7dd7']]
         # listSplit = [['2ec1a68a-a2d0-4022-a464-6cf3205a4fbf', '752085e1-5a77-432c-a491-20777ba71940', '15741467-497a-4923-bc93-692d85e54315', 'f6dcabe2-38fb-48a7-a9e3-dcc54261cf7b', '1e5aafd5-f611-4f68-bc65-0e6918d922a7', '47d58519-a47c-490d-829c-31bccbd331a2', '79ee7654-320a-40a6-82d3-c18e28581240', '317fddfa-1016-497f-a38c-3684131f13a1', '040f81b3-4ef4-40f0-85b7-57c404e3ad48', '5809fce1-4608-4833-b4b1-cb07f27a420f', '03bc6702-fb15-4a40-a55d-6e38900b3991', 'fce6ffb3-1eb5-4a97-a43b-d507cac67ecd', '119c632e-a25a-45c8-b727-64573849648f', 'a52b8158-9eac-4317-a189-4c2adc7ab9f7', '33f21097-b1c7-4eb6-b3e8-9dcfd0d0b8c7', '52b14c80-2d10-478d-830d-47892b044ab6']]
         try:

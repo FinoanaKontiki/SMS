@@ -7,6 +7,7 @@ import socket
 import numpy as np
 import asyncio
 import requests
+import json
 
 from urllib.error import ContentTooShortError
 from datetime import datetime
@@ -28,6 +29,7 @@ class files(authentification):
         self.stats_apikey = "b48fac8d4d8bb8200896ca4c66ca0180"
         self.dataFile = pd.read_csv(self.docFiles+self.pathByOs+"tags"+self.pathByOs+"liste_id_tag.csv" ,sep=";", encoding="ISO-8859-1" , on_bad_lines='skip', skip_blank_lines= True)
         self.all_campagne_with_data_konticrea =  []
+        self.camp_list_name = {}
         
     ##Fonctionlity Util 
     def writeToLog(self, logName, data):
@@ -84,6 +86,7 @@ class files(authentification):
         try:
             fileName = str(datetime.now().strftime("%Y%m%d"))+"_"+fileType+"_SMS.csv"
             newFTPfile = self.docFiles+"FTPFiles"+self.pathByOs+fileName
+            dataToAppend.dropna(inplace = True)
             dataToAppend.to_csv(newFTPfile, sep=',', mode='a', index =False, header=False)
             result = {"etat": "success", "date": str(datetime.now())}
         except Exception as e:
@@ -151,16 +154,18 @@ class files(authentification):
             if fileContentFrame.empty == False:
                 if len(dataInfoCreatedFile['dataStats']) > 0:
                     forData = dataInfoCreatedFile['dataStats']
-                    dataKonticrea = {"idStats":forData['stats_id'],"tag_campagne":forData['tag'],"code_pays":forData['country']}
+                    dataKonticrea = {"idStats":forData['stats_id'],"tag_campagne":forData['tag'],"code_pays":forData['country'], "advertiser":forData['campaign']}
                 else:
-                    tag = self.findTagCamp(dataInfoCreatedFile['idCampagne'])
+                    # tag = self.findTagCamp(dataInfoCreatedFile['idCampagne'])
+                    tag = self.findTagAndAdvertiser(dataInfoCreatedFile['idCampagne'])
                     if bool(tag) != False:
-                        dataKonticrea = {"idStats":tag['id_stats'] if tag['id_stats'] != '' else "00","tag_campagne":tag['tag'] if tag['tag'] != '' else 'None',"code_pays":"fr"}
+                        dataKonticrea = {"idStats":tag['id_stats'] if tag['id_stats'] != '' else "00","tag_campagne":tag['tag'] if tag['tag'] != '' else 'None',"code_pays":"fr", "advertiser":tag['advertiser']}
                     else:
                         dataKonticrea = {"idStats":"00","tag_campagne":'None',"code_pays":"fr"}
                 fileContentFrame.loc[:,'idStats'] = dataKonticrea['idStats']
                 fileContentFrame.loc[:,'tag_campagne'] = dataKonticrea['tag_campagne']
                 fileContentFrame.loc[:,'code_pays'] = dataKonticrea['code_pays']
+                fileContentFrame.loc[:,'advertiser'] = dataKonticrea['advertiser']
                 formatMobile = lambda mobile: str(mobile).replace('+', '')
                 if dataInfoCreatedFile['fileType'] == "optedOut":
                     data  = {
@@ -169,6 +174,7 @@ class files(authentification):
                         "idStats" : fileContentFrame.loc[:,'idStats'],
                         "tag_campagne" : fileContentFrame.loc[:,'tag_campagne'],
                         "code_pays" : fileContentFrame.loc[:,'code_pays'],
+                        "advertiser" : fileContentFrame.loc[:,'advertiser'],
                     }
 
                 elif dataInfoCreatedFile['fileType'] == "optedOutUndelivered":
@@ -178,11 +184,15 @@ class files(authentification):
                         "idStats" : fileContentFrame.loc[:,'idStats'],
                         "tag_campagne" : fileContentFrame.loc[:,'tag_campagne'],
                         "code_pays" : fileContentFrame.loc[:,'code_pays'],
+                        "advertiser" : fileContentFrame.loc[:,'advertiser'],
                     }
 
                 elif dataInfoCreatedFile['fileType'] == "undelivered":
+                    # with open('dict.txt', "w") as f:
+                    #     f.write(str(fileContentFrame.to_json()))
                     all_with_date = fileContentFrame[fileContentFrame["Status"] == "Failed"]
                     all_with_date.reset_index(drop=True, inplace= True)
+                    # print(all_with_date['ErrorCode'])
                     date_to_optout = all_with_date["Processed UTC"].iloc[0]
                     true_date = lambda date,date_to: self.formDate(str(date)) if date != '' else self.formDate(str(date_to))
                     fileContentFrame['Processed UTC'] = np.vectorize(true_date)(fileContentFrame['Processed UTC'],date_to_optout)
@@ -190,9 +200,11 @@ class files(authentification):
                     data  = {
                         "date_shoot" : data_undeliver.loc[:,'Processed UTC'],
                         "mobile" : data_undeliver.loc[:,'Recipient'].apply(formatMobile),
-                        "idStats" : data_undeliver.loc[:,'idStats'],
+                        "idStats" : data_undeliver.loc[:,'idStats'].astype(int),
                         "tag_campagne" : data_undeliver.loc[:,'tag_campagne'],
                         "code_pays" : data_undeliver.loc[:,'code_pays'],
+                        "error_code": data_undeliver.loc[:,'ErrorCode'],
+                        "advertiser" : data_undeliver.loc[:,'advertiser'],
                     }
                     dataOpted = fileContentFrame[fileContentFrame['Status']=='OptedOut']
                     if len(dataOpted) > 1:
@@ -206,8 +218,8 @@ class files(authentification):
                         "idStats" : fileContentFrame.loc[:,'idStats'],
                         "tag_campagne" : fileContentFrame.loc[:,'tag_campagne'],
                         "code_pays" : fileContentFrame.loc[:,'code_pays'],
+                        "advertiser" : fileContentFrame.loc[:,'advertiser'],
                     }
-                    
                 resultFrame = pd.DataFrame(data)
                 # print(withstatus)
                 # print(resultFrame)
@@ -250,16 +262,12 @@ class files(authentification):
             print(listeCampagne)
             self.all_campagne_with_data_konticrea = self.getCampagneInfoKonticrea(listeCampagne)
             print(self.all_campagne_with_data_konticrea)
-            # if len(self.all_campagne_with_data_konticrea) > 0:
-                # print("#" * 50)
-                # print(self.all_campagne_with_data_konticrea)
-                # print("#" * 50)
             undelivered  =threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"undelivered"))
             converted=threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"converted"))
             optedOut=threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"optedOut"))
             delivered=threading.Thread(target=self.launchDWHUpdate,args=(listeCampagne,"delivered"))
             theadList = [undelivered,converted,optedOut,delivered]
-            # theadList = [optedOut]
+            # theadList = [undelivered]
             [t.start() for t in theadList]
             [t.join() for t in theadList]
             print(f"{colors.OKGREEN}--- All process executed ---{colors.ENDC}")
@@ -293,7 +301,6 @@ class files(authentification):
     def getDataKonticrea (self, idCamp):
         data = []
         if len(self.all_campagne_with_data_konticrea) != 0:
-            print()
             for dataKonti in self.all_campagne_with_data_konticrea:
                 if dataKonti['idCampagne'] == idCamp:
                     data = dataKonti
@@ -323,3 +330,21 @@ class files(authentification):
                 "id_stats": int(rowSelectedFrame.loc[0,"id_stats"])
             } 
         return data
+    
+    def findTagAndAdvertiser(self, idCamp):
+        dataRes = {}
+        camp_name = self.camp_list_name[idCamp]
+        if bool(camp_name):
+            if "verisure" in str(camp_name).lower():
+                dataRes = {
+                    "advertiser":"Verisure",
+                    "tag": "alarms",
+                    "id_stats": int(53)
+                }
+            elif "mon-centre-auditif.com" in str(camp_name).lower():
+                dataRes = {
+                    "advertiser":"mon-centre-auditif.com",
+                    "tag": "Health",
+                    "id_stats": int(14)
+                }
+        return dataRes
