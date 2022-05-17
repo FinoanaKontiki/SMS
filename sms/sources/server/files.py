@@ -1,3 +1,4 @@
+from genericpath import isdir
 import pandas as pd
 # import urllib.request
 import urllib
@@ -30,6 +31,7 @@ class files(authentification):
         self.dataFile = pd.read_csv(self.docFiles+self.pathByOs+"tags"+self.pathByOs+"liste_id_tag.csv" ,sep=";", encoding="ISO-8859-1" , on_bad_lines='skip', skip_blank_lines= True)
         self.all_campagne_with_data_konticrea =  []
         self.camp_list_name = {}
+        self.statsBaseList = self.setListBaseStats()
         
     ##Fonctionlity Util 
     def writeToLog(self, logName, data):
@@ -66,7 +68,19 @@ class files(authentification):
         if len(data) >0:
                 allData.append(data)
         return allData
-
+    ##
+    def setListBaseStats(self):
+        url = "https://stats.kontikimedia.com/publicapi/cmapi/getcmbases?userapikey=ed630f1f208bfcefe996218d331ed327"
+        data = {"userapikey":"b48fac8d4d8bb8200896ca4c66ca0180"}
+        result = {}
+        try:
+            request = requests.post(url,data=data)
+            res = json.loads(request.text) if request.status_code == 200 or request.status_code == 201  else {"etat": "error ", "etat_description": str(request.status_code)}
+            if "etat" not in res:
+                result = res['bases'] 
+        except Exception as e:
+            print(f"{colors.FAIL} ERROR GET STATS DATABASE NAME !!!!!!!!!!!!!{colors.ENDC}")
+        return result
     ############################################            
     def formatFile(self, pathFile, type):
         fileContentFrame = pd.read_csv(pathFile, sep=',', on_bad_lines='skip')
@@ -82,10 +96,25 @@ class files(authentification):
         print(fileContentFrame['phone'])
         return fileContentFrame
     
-    def appendContentsInFile(self, dataToAppend, fileType):
+    def appendContentsInFile(self, dataToAppend, fileType, idCamp):
         try:
             fileName = str(datetime.now().strftime("%Y%m%d"))+"_"+fileType+"_SMS.csv"
-            newFTPfile = self.docFiles+"FTPFiles"+self.pathByOs+fileName
+            base_for_folder_name = self.getDatabaseStats(idCamp)
+            base_folder_path = self.docFiles+"FTPFiles"+self.pathByOs+base_for_folder_name
+            if isdir(base_folder_path):
+                newFTPfile = self.docFiles+"FTPFiles"+self.pathByOs+base_for_folder_name+self.pathByOs+fileName
+            else:
+                try:
+                    os.mkdir(base_folder_path)
+                    newFTPfile = self.docFiles+"FTPFiles"+self.pathByOs+base_for_folder_name+self.pathByOs+fileName
+                except FileExistsError:
+                    pass
+            print('*'*50)
+            print('Camp= '+self.camp_list_name[idCamp])
+            print('base folder name = '+base_for_folder_name)
+            print(base_folder_path)
+            print(newFTPfile)
+            print('*'*50)
             dataToAppend.dropna(inplace = True)
             dataToAppend.to_csv(newFTPfile, sep=',', mode='a', index =False, header=False)
             result = {"etat": "success", "date": str(datetime.now())}
@@ -147,7 +176,7 @@ class files(authentification):
             
         return result
     
-    def filterFileToAppend(self, dataInfoCreatedFile , dataExist = pd.DataFrame()):
+    def filterFileToAppend(self, dataInfoCreatedFile , idCamp,dataExist = pd.DataFrame()):
         try:
             fileContentFrame = pd.read_csv(dataInfoCreatedFile['pathFile'], sep=',', na_filter=False, on_bad_lines='skip', skip_blank_lines= True) if len(dataExist) < 1  else dataExist
             # fileContentFrame = pd.read_csv(dataInfoCreatedFile['pathFile'], sep=',', na_filter=False, skip_blank_lines= True, engine='python', error_bad_lines=False) if len(dataExist) < 1  else dataExist
@@ -209,7 +238,7 @@ class files(authentification):
                     dataOpted = fileContentFrame[fileContentFrame['Status']=='OptedOut']
                     if len(dataOpted) > 1:
                         dataInfoCreatedFile = {"pathFile":"async","idCampagne":dataInfoCreatedFile['idCampagne'],"fileType": "optedOutUndelivered", "dataStats":dataInfoCreatedFile['dataStats']}
-                        asyncio.run(self.updateOptOutByUndelivered(dataInfoCreatedFile=dataInfoCreatedFile, data=dataOpted))
+                        asyncio.run(self.updateOptOutByUndelivered(dataInfoCreatedFile=dataInfoCreatedFile, data=dataOpted, idCamp=idCamp))
                         next
                 else:
                     data={
@@ -234,19 +263,19 @@ class files(authentification):
             self.writeToLog("filterFile_function",{"etat": "error ", "etat_description": str(e), "date": str(datetime.now()), "id": dataInfoCreatedFile['idCampagne']})
             return {'etat':'ERROR'}
 
-    async def updateOptOutByUndelivered(self, dataInfoCreatedFile, data):
+    async def updateOptOutByUndelivered(self, dataInfoCreatedFile, data, idCamp):
         print('async-------------------------------------')
-        data_append = self.filterFileToAppend(dataInfoCreatedFile=dataInfoCreatedFile, dataExist= data)
+        data_append = self.filterFileToAppend(dataInfoCreatedFile=dataInfoCreatedFile, dataExist= data, idCamp=idCamp)
         if isinstance(data_append,DataFrame,):
-            self.appendContentsInFile(data_append, 'optedOut')
+            self.appendContentsInFile(data_append, 'optedOut',idCamp=idCamp)
 
     def launchDWHUpdate(self, campagneList,fileType):
         for idCamp in campagneList:
             infoCurrentCamp =  self.downloadFiles(idCamp,fileType)
             if "etat" in  infoCurrentCamp and infoCurrentCamp["etat"] == "success":
-                dataToAppend = self.filterFileToAppend(infoCurrentCamp)
+                dataToAppend = self.filterFileToAppend(infoCurrentCamp, idCamp=idCamp)
                 if isinstance(dataToAppend,DataFrame):
-                    appendResult = self.appendContentsInFile(dataToAppend,fileType)
+                    appendResult = self.appendContentsInFile(dataToAppend,fileType,idCamp)
                     appendResult['idCampagne'] = idCamp 
                     self.writeToLog(fileType,appendResult)
                     if appendResult['etat'] == 'success':
@@ -348,3 +377,14 @@ class files(authentification):
                     "id_stats": int(14)
                 }
         return dataRes
+    
+    def getDatabaseStats(self, idCamp):
+        camp_name = self.camp_list_name[idCamp]
+        res = ''
+        for base in self.statsBaseList:
+            if str(base['name']).lower() in camp_name.lower():
+               res = base['name']
+        if res == '':
+            if 'PDCVLR' in camp_name or 'PDC VLR' in camp_name:
+                res = 'PDCVLR'
+        return res

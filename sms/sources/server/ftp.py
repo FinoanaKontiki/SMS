@@ -17,7 +17,7 @@ class ftp():
         self._server = ""
         self.pathByOs = "\\" if platform.system() == "Windows" else "//"
         self.docFiles = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))+self.pathByOs+"tmp"+self.pathByOs
-        self.sftpPath = self.pathByOs+"ftp_down"+self.pathByOs+"SMS"+self.pathByOs
+        self.sftpPath = self.pathByOs+"ftp_down"+self.pathByOs+"SMS"+self.pathByOs+"Bases"
     
     def connectToServer(self):
         try:
@@ -69,30 +69,43 @@ class ftp():
         try:
             print(f"{colors.WARNING}{fileTypeInSftp} Start upload----{colors.ENDC}")
             fileName = str(datetime.now().strftime("%Y%m%d"))+"_"+localFolderName+"_SMS.csv"
-            # fileName = "20220305_"+localFolderName+"_SMS.csv"
-            sftpPath = self.sftpPath+self.pathByOs+fileTypeInSftp+self.pathByOs+fileName
-            localFilePath = self.docFiles+self.pathByOs+"FTPFiles"+self.pathByOs+fileName
-            self._server.put(localpath=localFilePath,remotepath=sftpPath)
-            if self._server.exists(sftpPath):
-                os.remove(localFilePath)
-                print(f"{colors.OKGREEN}{fileTypeInSftp} ---Uploaded----{colors.ENDC}")
-            else:
-                print(f"{colors.FAIL} file {fileTypeInSftp} not uploaded path local: {localFilePath} {colors.ENDC}")
+            # fileName = "20220513_"+localFolderName+"_SMS.csv"
+            all_folder_base = os.listdir(self.docFiles+self.pathByOs+"FTPFiles")
+            for folder_base_name in all_folder_base:
+                sftp_folder_base_name = self.sftpPath+self.pathByOs+folder_base_name
+                sftpPath_file = sftp_folder_base_name+self.pathByOs+fileTypeInSftp+self.pathByOs+fileName
+                localFilePath = self.docFiles+self.pathByOs+"FTPFiles"+self.pathByOs+folder_base_name+self.pathByOs+fileName
+                print(sftp_folder_base_name, "------Base folder")
+                print(sftpPath_file, "------File")
+                try:
+                    if self._server.exists(sftp_folder_base_name) == False:
+                        self._server.mkdir(sftp_folder_base_name)
+                    if self._server.exists(sftp_folder_base_name+self.pathByOs+fileTypeInSftp) == False :
+                        self._server.mkdir(sftp_folder_base_name+self.pathByOs+fileTypeInSftp)
+                    self._server.put(localpath=localFilePath,remotepath=sftpPath_file)
+                except Exception as e:
+                    print(e)
+                    print(f"{colors.FAIL} ERROR CREATE DIRECTORY {sftp_folder_base_name} {colors.ENDC}")
+                if self._server.exists(sftpPath_file):
+                    os.remove(localFilePath)
+                    print(f"{colors.OKGREEN}{fileTypeInSftp} ---Uploaded----{colors.ENDC}")
+                else:
+                    print(f"{colors.FAIL} file {fileTypeInSftp} not uploaded path local: {localFilePath} {colors.ENDC}")
         except Exception as e:
             print(f"{colors.FAIL} ERROR uploading {fileTypeInSftp} file {str(e)}{colors.ENDC}")
 
     def proccessUpload(self, localFolderName,fileTypeInSftp):
         print(f"{colors.WARNING}{fileTypeInSftp} Start process----{colors.ENDC}")
-        backCreate = self.createBackLogServerFile(localFolderName,fileTypeInSftp)
-        if backCreate:
-            self.uploadToSFTP(localFolderName,fileTypeInSftp)
+        # backCreate = self.createBackLogServerFile(localFolderName,fileTypeInSftp)
+        # if backCreate:
+        self.uploadToSFTP(localFolderName,fileTypeInSftp)
         
 
     def lunchUploadTread(self):
         try:
             upClicked = threading.Thread(target=self.proccessUpload, args=("converted","Clicked"))          
             upHardbounce = threading.Thread(target=self.proccessUpload, args=("undelivered","Hardbounce"))          
-            upCSent = threading.Thread(target=self.proccessUpload, args=("delivered","Sent"))          
+            upCSent = threading.Thread(target=self.proccessUpload, args=("delivered","Sent"))     
             upUnsub = threading.Thread(target=self.proccessUpload, args=("optedOut","Unsub"))
             treadList = [upClicked, upHardbounce, upCSent, upUnsub]
             [th.start() for th in treadList]
@@ -112,8 +125,3 @@ class ftp():
                 print(f"{colors.FAIL}-----ERROR on thread execution {str(e)}{colors.ENDC}")
                 pass
         # self._server.close()
-
-              
-
-        
-                    
