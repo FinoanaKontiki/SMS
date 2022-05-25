@@ -1,0 +1,7 @@
+{'etat': 'error ', 'etat_description': "file Empty  PATH: {dataInfoCreatedFile['pathFile']}", 'date': '2022-05-24 14:12:44.574779', 'id': '05539e6c-5301-4fac-a9cc-9c647728f6f1'},
+{'etat': 'error ', 'etat_description': "file Empty  PATH: {dataInfoCreatedFile['pathFile']}", 'date': '2022-05-24 14:12:52.330922', 'id': '05539e6c-5301-4fac-a9cc-9c647728f6f1'},
+{'etat': 'error ', 'etat_description': "'advertiser'", 'date': '2022-05-24 14:13:06.890594', 'id': '05539e6c-5301-4fac-a9cc-9c647728f6f1'},
+{'etat': 'error ', 'etat_description': "file Empty  PATH: {dataInfoCreatedFile['pathFile']}", 'date': '2022-05-24 15:57:21.932715', 'id': '05539e6c-5301-4fac-a9cc-9c647728f6f1'},
+{'etat': 'error ', 'etat_description': "'advertiser'", 'date': '2022-05-24 15:57:22.012392', 'id': '05539e6c-5301-4fac-a9cc-9c647728f6f1'},
+{'etat': 'error ', 'etat_description': "file Empty  PATH: {dataInfoCreatedFile['pathFile']}", 'date': '2022-05-24 15:57:22.012535', 'id': '05539e6c-5301-4fac-a9cc-9c647728f6f1'},
+{'etat': 'error ', 'etat_description': "file Empty  PATH: {dataInfoCreatedFile['pathFile']}", 'date': '2022-05-24 15:57:23.819508', 'id': '05539e6c-5301-4fac-a9cc-9c647728f6f1'},

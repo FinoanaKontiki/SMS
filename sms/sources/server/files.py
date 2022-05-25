@@ -257,6 +257,7 @@ class files(authentification):
             else:
                 os.remove(dataInfoCreatedFile['pathFile'])
                 print(f"{colors.FAIL} ERROR: ---file Empty  PATH: {dataInfoCreatedFile['pathFile']} {colors.ENDC}")
+                self.writeToLog("filterFile_function",{"etat": "error ", "etat_description": f"file Empty  PATH: {dataInfoCreatedFile['pathFile']}", "date": str(datetime.now()), "id": dataInfoCreatedFile['idCampagne']})
                 return {'etat':'ERROR'}
         except Exception as e:
             print(f"{colors.FAIL} ERROR: {str(e)}  PATH: {dataInfoCreatedFile['pathFile']} {colors.ENDC}")

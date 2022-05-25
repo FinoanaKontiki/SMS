@@ -1,5 +1,5 @@
 ###SFTP
-HOST = "sftp.kontikimedia.com"
+HOST = "sftp2.kontikimedia.com"
 USER = "smsdatadwh"
 PASS = 'wQfBfHKH7Gx"H>bR'
 

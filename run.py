@@ -9,7 +9,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 if __name__ == "__main__":
         scheduler = BackgroundScheduler(timezone="Europe/Berlin")
-        trigger = OrTrigger([CronTrigger(day_of_week='Mon-Sat', hour=9, minute=35)])
+        trigger = OrTrigger([CronTrigger(day_of_week='Mon-Sat', hour=21, minute=1)])
         scheduler.add_job(sms.views.lunch, trigger)
         scheduler.start()
         #Shut down the scheduler when exiting the app
